@@ -10,7 +10,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Matthew Beer">
-  <meta name="description" content="Interactive map tracing Pvt. Thomas Beer and the 28th Pennsylvania Volunteers through the Civil War, 1862–1864. 42 events from the Beer Family Blog, mapped chronologically.">
+  <meta name="description" content="Interactive map tracing Pvt. Thomas Beer and the 28th Pennsylvania Volunteers through the Civil War, 1862–1864. 44 events from the Beer Family Blog and family records, mapped chronologically.">
   <title>Thomas Beer &amp; the 28th PA Volunteers — Civil War Journey, 1862–1864</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -210,7 +210,7 @@
   <div class="map-title">
     <h1>Pvt. Thomas Beer &amp; the 28th PA Volunteers</h1>
     <div class="subtitle">A Civil War Journey — June 1862 to July 1864<br>
-    42 blog posts from the <a href="https://beerfamily.wordpress.com" target="_blank" style="color:#C9A44A;text-decoration:none;">Beer Family Blog</a>, mapped chronologically<br>
+    44 events from the <a href="https://beerfamily.wordpress.com" target="_blank" style="color:#C9A44A;text-decoration:none;">Beer Family Blog</a> &amp; family records, mapped chronologically<br>
     <span style="font-size:10px;color:#7A7264;">By Matthew Beer</span></div>
   </div>
 
@@ -248,7 +248,7 @@
   </script>
   <script>
     // =========================================================================
-    // DATA — All 42 blog events geocoded with campaign phase assignments
+    // DATA — All 44 events geocoded with campaign phase assignments
     // =========================================================================
 
     const campaignPhases = [
@@ -259,6 +259,7 @@
       { id: 'gettysburg',   label: 'Gettysburg Campaign (Jun–Jul 1863)',color: '#2E6DA4' },
       { id: 'west',         label: 'Western Theater (Sep–Nov 1863)',    color: '#8E44AD' },
       { id: 'atlanta',      label: 'Atlanta Campaign (May–Jul 1864)',   color: '#E67E22' },
+      { id: 'journeyhome', label: 'Muster-Out & Journey West (Jul–Oct 1864)', color: '#A0522D' },
       { id: 'postwar',      label: 'Post-War Life (1864–1913)',         color: '#34808C' }
     ];
 
@@ -574,11 +575,26 @@
         url: 'https://beerfamily.wordpress.com/2014/06/15/150-years-ago-pine-knob-ga/', type: 'wounded',
         casualties: { strength: null, total: 47, killed: null, wounded: null, missing: null, note: '47 killed and wounded; Thomas Beer final wound' } },
 
+      // === MUSTER-OUT & JOURNEY WEST ===
+      { id: 42, phase: 'journeyhome', date: '1864-07-20', sortDate: 18640720,
+        lat: 35.0456, lon: -85.3097,
+        title: 'Mustered Out', place: 'Chattanooga, Tennessee',
+        excerpt: 'On July 20, 1864, after three years surviving malaria, marches, four major battles, countless skirmishes and three major wounds, Private Thomas Beer was mustered out of the Union Army. The war was over for him — but the journey home was just beginning.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/06/beer-thomas-in-uniform1.jpg',
+        url: 'https://beerfamily.wordpress.com/2014/06/15/150-years-ago-pine-knob-ga/', type: 'event' },
+
+      { id: 43, phase: 'journeyhome', date: '1864-08-01', sortDate: 18640801,
+        lat: 40.6062, lon: -78.5267,
+        title: 'Fallentimber — Home Again', place: 'Fallentimber, Cambria County, Pennsylvania',
+        excerpt: 'Tom travelled home to Fallentimber in Cambria County, Pennsylvania, and worked for a few weeks before heading west. The stop is recorded in Tom\'s diary — a brief homecoming between the horrors of Sherman\'s campaign and the promise of a new life on the Illinois prairie.',
+        photoUrl: '',
+        url: '', type: 'home' },
+
       // === POST-WAR ===
-      { id: 42, phase: 'postwar', date: '1864-10-01', sortDate: 18641001,
+      { id: 44, phase: 'postwar', date: '1864-10-01', sortDate: 18641001,
         lat: 40.0480, lon: -91.0740,
         title: 'The Carpenter', place: 'Camp Point / Lorain, Illinois',
-        excerpt: 'Tom arrived in Camp Point, Illinois, age 22. He learned carpentry, built a ten-room house designed for two families, barns, a one-room schoolhouse with leather chalkboards and tin ceilings. Mary often chaffed at Tom for neglecting his farm — someone would come along asking for carpentry, and he\'d happily disappear with his tools. A small carpenter\'s marking gauge survives — "a wonderful reminder of a life spent building things…barns, homes, family."',
+        excerpt: 'Tom arrived in Camp Point, Illinois in the fall of 1864, age 22. He learned carpentry with his older brothers Sam and Andrew. He built a ten-room house designed for two families, barns, a one-room schoolhouse with leather chalkboards and tin ceilings. Mary often chaffed at Tom for neglecting his farm — someone would come along asking for carpentry, and he\'d happily disappear with his tools. A small carpenter\'s marking gauge survives — "a wonderful reminder of a life spent building things…barns, homes, family."',
         photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2018/10/beer-thomas-family-and-house-early.jpg',
         url: 'https://beerfamily.wordpress.com/2018/10/27/the-carpenter/', type: 'home' }
     ];
@@ -1209,7 +1225,7 @@
       // Phase-level defaults
       const phaseZooms = {
         early: 9, antietam: 13, recovery1: 11, chancellors: 10,
-        gettysburg: 12, west: 7, atlanta: 9, postwar: 7
+        gettysburg: 12, west: 7, atlanta: 9, journeyhome: 7, postwar: 7
       };
 
       const ev = events[idx];
