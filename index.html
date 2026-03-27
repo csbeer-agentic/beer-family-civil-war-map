@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<!--
+  Pvt. Thomas Beer & the 28th PA Volunteers — An Interactive Civil War Journey
+  Research & writing: Matthew Beer, Beer Family Blog (beerfamily.wordpress.com)
+  Interactive map: Matthew Beer & Claude (Anthropic)
+  License: Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Matthew Beer">
+  <meta name="description" content="Interactive map tracing Pvt. Thomas Beer and the 28th Pennsylvania Volunteers through the Civil War, 1862–1864. 42 events from the Beer Family Blog, mapped chronologically.">
+  <title>Thomas Beer &amp; the 28th PA Volunteers — Civil War Journey, 1862–1864</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+Pro:wght@300;400;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; }
+    #map { width: 100vw; height: 100vh; }
+
+    /* Title overlay */
+    .map-title {
+      position: absolute; top: 12px; left: 60px; z-index: 1000;
+      background: rgba(26, 26, 46, 0.92); padding: 14px 22px;
+      border-radius: 6px; border-left: 4px solid #C9A44A;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      max-width: 420px;
+    }
+    .map-title h1 {
+      font-family: 'Crimson Text', Georgia, serif;
+      font-size: 20px; font-weight: 700; color: #E8DCC8;
+      line-height: 1.25; margin-bottom: 4px;
+    }
+    .map-title .subtitle {
+      font-size: 12px; font-weight: 400; color: #9B8E7E;
+      line-height: 1.4;
+    }
+
+    /* Campaign phases legend */
+    .legend {
+      position: absolute; bottom: 100px; right: 12px; z-index: 1000;
+      background: rgba(26, 26, 46, 0.92); padding: 14px 18px;
+      border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      max-width: 220px;
+    }
+    .legend h3 {
+      font-family: 'Crimson Text', Georgia, serif;
+      font-size: 14px; font-weight: 700; color: #E8DCC8;
+      margin-bottom: 8px; border-bottom: 1px solid rgba(201,164,74,0.3);
+      padding-bottom: 6px;
+    }
+    .legend-item {
+      display: flex; align-items: center; margin-bottom: 6px;
+      cursor: pointer; opacity: 1; transition: opacity 0.2s;
+    }
+    .legend-item.muted { opacity: 0.35; }
+    .legend-item .swatch {
+      width: 14px; height: 14px; border-radius: 3px; margin-right: 8px;
+      flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15);
+    }
+    .legend-item .label {
+      font-size: 12px; color: #C4B9A8; line-height: 1.3;
+    }
+
+    /* Narrative panel */
+    .narrative-panel {
+      position: absolute; bottom: 100px; left: 12px; z-index: 1000;
+      background: rgba(26, 26, 46, 0.94); padding: 18px 22px;
+      border-radius: 6px; border-left: 4px solid #C9A44A;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      max-width: 380px; max-height: 300px; overflow-y: auto;
+      display: none;
+    }
+    .narrative-panel h2 {
+      font-family: 'Crimson Text', Georgia, serif;
+      font-size: 17px; font-weight: 700; color: #E8DCC8;
+      margin-bottom: 2px;
+    }
+    .narrative-panel .date-line {
+      font-size: 12px; color: #C9A44A; margin-bottom: 8px; font-weight: 600;
+    }
+    .narrative-panel .excerpt {
+      font-size: 13px; color: #B8AFA2; line-height: 1.55;
+      font-family: 'Crimson Text', Georgia, serif;
+    }
+    .narrative-panel .excerpt em { color: #D4C9B8; }
+    .narrative-panel .source-link {
+      display: inline-block; margin-top: 10px;
+      font-size: 11px; color: #7A8BA8; text-decoration: none;
+    }
+    .narrative-panel .source-link:hover { color: #9BB0D0; }
+    .narrative-panel .close-btn {
+      position: absolute; top: 8px; right: 12px;
+      background: none; border: none; color: #6B6358;
+      font-size: 18px; cursor: pointer; line-height: 1;
+    }
+    .narrative-panel .close-btn:hover { color: #E8DCC8; }
+
+    /* Timeline slider */
+    .timeline-control {
+      position: absolute; bottom: 20px; left: 60px; right: 60px; z-index: 1000;
+      background: rgba(26, 26, 46, 0.92); padding: 12px 24px 14px;
+      border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      display: flex; align-items: center; gap: 16px;
+    }
+    .timeline-control label {
+      font-size: 13px; color: #9B8E7E; font-weight: 600; white-space: nowrap;
+    }
+    .timeline-control .date-display {
+      font-family: 'Crimson Text', Georgia, serif;
+      font-size: 16px; color: #C9A44A; font-weight: 700;
+      min-width: 120px; text-align: center;
+    }
+    .timeline-control input[type="range"] {
+      flex: 1; accent-color: #C9A44A; height: 6px;
+    }
+    .timeline-control .play-btn {
+      background: rgba(201,164,74,0.2); border: 1px solid #C9A44A;
+      color: #C9A44A; padding: 4px 14px; border-radius: 4px;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: background 0.2s;
+    }
+    .timeline-control .play-btn:hover { background: rgba(201,164,74,0.35); }
+
+    /* Stats bar */
+    .stats-bar {
+      position: absolute; top: 12px; right: 12px; z-index: 1000;
+      background: rgba(26, 26, 46, 0.92); padding: 10px 18px;
+      border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      display: flex; gap: 20px;
+    }
+    .stat { text-align: center; }
+    .stat .num {
+      font-family: 'Crimson Text', Georgia, serif;
+      font-size: 22px; font-weight: 700; color: #C9A44A;
+    }
+    .stat .lbl { font-size: 10px; color: #9B8E7E; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Popup styling */
+    .leaflet-popup-content-wrapper {
+      background: rgba(26, 26, 46, 0.95); color: #E8DCC8;
+      border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      border: 1px solid rgba(201,164,74,0.3);
+    }
+    .leaflet-popup-tip { background: rgba(26, 26, 46, 0.95); }
+    .leaflet-popup-content { margin: 12px 16px; min-width: 220px; }
+    .popup-title {
+      font-family: 'Crimson Text', Georgia, serif;
+      font-size: 15px; font-weight: 700; color: #E8DCC8;
+      margin-bottom: 2px;
+    }
+    .popup-date { font-size: 11px; color: #C9A44A; font-weight: 600; margin-bottom: 6px; }
+    .popup-detail { font-size: 12px; color: #B8AFA2; line-height: 1.45; }
+    .popup-detail strong { color: #C4B9A8; }
+
+    /* Casualties line in popups */
+    .popup-casualties {
+      font-size: 11px; color: #C0392B; margin-top: 6px; font-weight: 600;
+      padding: 3px 6px; background: rgba(192,57,43,0.1); border-radius: 3px;
+      border-left: 2px solid rgba(192,57,43,0.4);
+    }
+    .popup-phase-badge {
+      display: inline-block; padding: 1px 8px; border-radius: 3px;
+      font-size: 10px; font-weight: 600; color: #fff; margin-right: 6px;
+      vertical-align: middle; opacity: 0.85;
+    }
+    .popup-readmore {
+      display: inline-block; margin-top: 8px; font-size: 11px;
+      color: #7A8BA8; text-decoration: none;
+    }
+    .popup-readmore:hover { color: #9BB0D0; text-decoration: underline; }
+
+    /* Photo in popups */
+    .popup-photo {
+      width: 100%; max-height: 160px; object-fit: cover;
+      border-radius: 4px; margin-bottom: 8px;
+      border: 1px solid rgba(201,164,74,0.3);
+    }
+    /* Photo in narrative panel */
+    .narrative-photo {
+      width: 100%; max-height: 200px; object-fit: cover;
+      border-radius: 4px; margin: 10px 0;
+      border: 1px solid rgba(201,164,74,0.25);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Scrollbar for narrative */
+    .narrative-panel::-webkit-scrollbar { width: 5px; }
+    .narrative-panel::-webkit-scrollbar-track { background: transparent; }
+    .narrative-panel::-webkit-scrollbar-thumb { background: rgba(201,164,74,0.3); border-radius: 3px; }
+
+    /* 4A: Mobile-responsive CSS */
+    @media (max-width: 768px) {
+      .map-title { max-width: 200px; }
+      .map-title h1 { font-size: 16px; }
+      .legend { bottom: 80px; max-width: 160px; font-size: 11px; }
+      .narrative-panel { max-width: 280px; bottom: 80px; max-height: 200px; overflow-y: auto; }
+      .timeline-control { left: 12px; right: 12px; flex-wrap: wrap; }
+      .stats-bar { flex-wrap: wrap; gap: 10px; }
+      .stats-bar .stat { min-width: 60px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="map-title">
+    <h1>Pvt. Thomas Beer &amp; the 28th PA Volunteers</h1>
+    <div class="subtitle">A Civil War Journey — June 1862 to July 1864<br>
+    42 blog posts from the <a href="https://beerfamily.wordpress.com" target="_blank" style="color:#C9A44A;text-decoration:none;">Beer Family Blog</a>, mapped chronologically<br>
+    <span style="font-size:10px;color:#7A7264;">By Matthew Beer</span></div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="num" id="stat-miles">1,800+</div><div class="lbl">Miles Marched</div></div>
+    <div class="stat"><div class="num" id="stat-wounds">0</div><div class="lbl">Wounds</div></div>
+    <div class="stat"><div class="num" id="stat-battles">0</div><div class="lbl">Major Battles</div></div>
+    <div class="stat"><div class="num" id="stat-visible">0</div><div class="lbl">Events Shown</div></div>
+  </div>
+
+  <div class="legend" id="legend">
+    <h3>Campaign Phases</h3>
+  </div>
+
+  <div class="narrative-panel" id="narrative">
+    <button class="close-btn" onclick="document.getElementById('narrative').style.display='none'">&times;</button>
+    <h2 id="narr-title"></h2>
+    <div class="date-line" id="narr-date"></div>
+    <div class="excerpt" id="narr-excerpt"></div>
+    <a class="source-link" id="narr-link" href="#" target="_blank">Read full blog post &rarr;</a>
+  </div>
+
+  <div class="timeline-control">
+    <label>Timeline:</label>
+    <div class="date-display" id="date-display">All Events</div>
+    <input type="range" id="timeline-slider" min="0" max="40" value="40" step="1">
+    <button class="play-btn" id="play-btn">&#9654; Play</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin=""></script>
+  <script>
+    if (typeof L === 'undefined') {
+      document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');
+    }
+  </script>
+  <script>
+    // =========================================================================
+    // DATA — All 42 blog events geocoded with campaign phase assignments
+    // =========================================================================
+
+    const campaignPhases = [
+      { id: 'early',        label: 'Early Service (Jun–Aug 1862)',      color: '#5B8C5A' },
+      { id: 'antietam',     label: 'Antietam Campaign (Sep 1862)',      color: '#C0392B' },
+      { id: 'recovery1',    label: 'Hospital & Recovery (Sep 1862)',    color: '#7D8CA3' },
+      { id: 'chancellors',  label: 'Chancellorsville (Apr–May 1863)',   color: '#D4890E' },
+      { id: 'gettysburg',   label: 'Gettysburg Campaign (Jun–Jul 1863)',color: '#2E6DA4' },
+      { id: 'west',         label: 'Western Theater (Sep–Nov 1863)',    color: '#8E44AD' },
+      { id: 'atlanta',      label: 'Atlanta Campaign (May–Jul 1864)',   color: '#E67E22' },
+      { id: 'postwar',      label: 'Post-War Life (1864–1913)',         color: '#34808C' }
+    ];
+
+    const events = [
+      // === EARLY SERVICE ===
+      { id: 1, phase: 'early', date: '1862-06-06', sortDate: 18620606,
+        lat: 38.8562, lon: -77.8681,
+        title: 'Tom Beer Turns 20', place: 'Rectortown, Virginia',
+        excerpt: 'The 28th was encamped at Rectortown, guarding the railroad from Front Royal to Manassas Junction. After a year of war, they had seen little action. "The Soldier\'s risks are not so great as the outside public imagines." All that was about to change…',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/06/beer-thomas-in-uniform1.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/06/06/150-years-ago/', type: 'camp' },
+
+      { id: 2, phase: 'early', date: '1862-07-01', sortDate: 18620701,
+        lat: 38.8562, lon: -77.8681,
+        title: 'New Commander: Lt Col Tyndale', place: 'Rectortown, Virginia',
+        excerpt: 'Lt Col Hector Tyndale, a Philadelphia businessman and ardent abolitionist, became the new commander. An uncompromising disciplinarian — "we have had some hard times since he has been in command."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/06/antietam-aop-tyndale.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/07/01/150-years-ago-3/', type: 'camp' },
+
+      { id: 3, phase: 'early', date: '1862-08-09', sortDate: 18620809,
+        lat: 38.5900, lon: -78.1370,
+        title: 'Thoroughfare Mountain', place: 'Thoroughfare Mountain (signal station), near Cedar Mountain, Culpeper County, VA',
+        excerpt: 'After four days of marching over dusty roads in miserably hot weather, the 28th occupied Thoroughfare Mountain and established a signal outpost. As the rest of their brigade fought the Battle of Cedar Mountain, "the 28th could only watch the occasional bursting shell that was partially visible from their lonely mountaintop position."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/06/471px-signal_station_elk_mountain.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/08/09/150-years-ago-2/', type: 'march' },
+
+      // === ANTIETAM CAMPAIGN ===
+      { id: 4, phase: 'antietam', date: '1862-09-02', sortDate: 18620902,
+        lat: 38.8347, lon: -77.5221,
+        title: 'Retreat from Bull Run', place: 'Bull Run Bridge, Virginia',
+        excerpt: 'The 28th departed Bull Run Bridge, acting as rear guard for General Pope\'s retreating forces. Over the next two weeks they would march 125 miles north through Alexandria and Georgetown, fording the Monocacy River.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/1862-august-bull-run-va-new-bridge-built-by-mcdowells-engineers_thumb.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/02/83/', type: 'march' },
+
+      { id: 5, phase: 'antietam', date: '1862-09-16', sortDate: 18620916,
+        lat: 39.4746, lon: -77.7447,
+        title: 'Eve of Antietam', place: 'Antietam Creek, near Sharpsburg, MD',
+        excerpt: 'The Pennsylvanians settled in along the banks of Antietam Creek. At 11 o\'clock a gentle rain began to fall. They crossed a stone bridge and collapsed in a freshly plowed field, overcome by sleep as cold drizzle became steady rain.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/antietam-battlefield2.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/15/150-years-ago-antietam/', type: 'camp' },
+
+      { id: 6, phase: 'antietam', date: '1862-09-17', sortDate: 18620917,
+        lat: 39.4746, lon: -77.7447,
+        title: '06:00 — The March Begins', place: 'Antietam Battlefield',
+        excerpt: 'Clear skies and the rumble of cannon heralded the dawn. The 786 Pennsylvanians formed into column of companies. Under the stern eye of Lt. Col. Tyndale, they set out across the Smoketown Road toward the sound of firing.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/06205.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/16/150-years-ago-0600/', type: 'battle',
+        casualties: { strength: 786, total: 636, killed: null, wounded: null, missing: null, note: 'Full day — 786 Pennsylvanians at dawn; ~150 ragged men by noon' } },
+
+      { id: 7, phase: 'antietam', date: '1862-09-17', sortDate: 18620917.05,
+        lat: 39.4770, lon: -77.7455,
+        title: '07:30 — Signs of the Elephant', place: 'East Woods (northern edge), Antietam',
+        excerpt: 'General Mansfield, in command only two days, was mortally wounded as the 12th Corps deployed under fire. The trickle of wounded men became a stream of mangled casualties. Shells dropped everywhere in the East Woods as branches cracked and the air seethed. "The roar of musketry was beyond anything conceivable to the uninitiated."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/mansfield.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/16/0730-signs-of-the-elephant/', type: 'battle',
+        casualties: { strength: 786, total: 636, killed: null, wounded: null, missing: null, note: 'Antietam full-day aggregate' } },
+
+      { id: 8, phase: 'antietam', date: '1862-09-17', sortDate: 18620917.1,
+        lat: 39.4795, lon: -77.7472,
+        title: '08:00 — East Woods & The Cornfield', place: 'The Cornfield, Antietam',
+        excerpt: '"Here we mowed them down." The 28th delivered a volley so precise "that it is spoken of to this day." The 6th Georgia, 250 strong, was reduced to 24 survivors — killed in formation among the cornstalks.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/screen-shot-2012-09-13-at-10-08-32-pm.png',
+        url: 'https://beerfamily.wordpress.com/2012/09/16/0800-east-woods-and-the-cornfield/', type: 'battle',
+        casualties: { strength: 786, total: 636, killed: null, wounded: null, missing: null, note: 'Antietam full-day aggregate' } },
+
+      { id: 9, phase: 'antietam', date: '1862-09-17', sortDate: 18620917.2,
+        lat: 39.4756, lon: -77.7455,
+        title: "09:00 — Mumma's Farm", place: "Mumma Farm, Antietam",
+        excerpt: 'Already 8,000 men lay dead. Shells screamed into the 28th near Mumma\'s charred farm. "They fell right and left; some with heads blown off, others with legs, arms and so on."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/mummas-farm.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/16/0900-mummas-farm/', type: 'battle' },
+
+      { id: 10, phase: 'antietam', date: '1862-09-17', sortDate: 18620917.3,
+        lat: 39.4748, lon: -77.7460,
+        title: "10:00 — Mumma's Swale", place: "Mumma's Swale, Antietam",
+        excerpt: 'The Confederates charged three times. Each time the brigade rose and fired in unison with the Rhode Island batteries. "They fought well. In fact they seemed to know no fear…brave, daring men." Corporal Jacob Orth captured the 7th South Carolina\'s colors — earning the Medal of Honor.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/dunker-church-antitetam.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/17/1000-mummas-swale/', type: 'battle' },
+
+      { id: 11, phase: 'antietam', date: '1862-09-17', sortDate: 18620917.35,
+        lat: 39.4735, lon: -77.7495,
+        title: '10:30 — Into the West Woods', place: 'West Woods (beyond Dunker Church), Antietam',
+        excerpt: 'The brigade rushed with a hoarse cheer after the fleeing Rebels, struggling over rows of Confederate dead. "The corpses lay in long lines in ghastly mechanical regularity." The 28th pushed past Dunker Church into the West Woods — the deepest Federal penetration of the day. Sharpshooters plagued the regiment as Tyndale prepared one last desperate assault.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/westwoods.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/17/1030-into-the-west-woods/', type: 'battle',
+        casualties: { strength: 786, total: 636, killed: null, wounded: null, missing: null, note: 'Antietam full-day aggregate' } },
+
+      { id: 12, phase: 'antietam', date: '1862-09-17', sortDate: 18620917.4,
+        lat: 39.4730, lon: -77.7480,
+        title: '12:00 — Retreat', place: 'Dunker Church Ridge, Antietam',
+        excerpt: 'All Hell broke loose. The 13th New Jersey melted away. Tyndale fell, shot through the head. The 28th stood at about 150 ragged men. They scampered the last 300 yards to the Federal batteries.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/screen-shot-2012-09-15-at-8-31-20-pm.png',
+        url: 'https://beerfamily.wordpress.com/2012/09/17/1200-retreat/', type: 'battle',
+        casualties: { strength: 786, total: 636, killed: null, wounded: null, missing: null, note: '~150 ragged men remained' } },
+
+      { id: 13, phase: 'antietam', date: '1862-09-17', sortDate: 18620917.5,
+        lat: 39.4740, lon: -77.7430,
+        title: '13:00 — Wounded', place: 'Antietam Battlefield',
+        excerpt: 'Pvt. Thomas Beer was wounded by a musket ball that entered his shoulder and travelled downward, exiting just under the inferior angle of his scapula — inches from his spinal column. He was carried to a field hospital.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/screen-shot-2012-09-15-at-8-41-47-pm.png',
+        url: 'https://beerfamily.wordpress.com/2012/09/17/1300-wounded/', type: 'wounded' },
+
+      // === HOSPITAL & RECOVERY ===
+      { id: 14, phase: 'recovery1', date: '1862-09-20', sortDate: 18620920,
+        lat: 38.9217, lon: -77.0320,
+        title: 'The Hospital', place: 'Columbian College, Washington, D.C.',
+        excerpt: 'Beer was admitted to Columbian College General Hospital. While recovering, President Lincoln sat on his cot, shook hands and visited. Beer recalled, Lincoln was "a common fellow and very nice." It took two months to recover.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/hd_lincolna_nara.jpg',
+        url: 'https://beerfamily.wordpress.com/2012/09/20/the-hospital/', type: 'hospital' },
+
+      { id: 15, phase: 'recovery1', date: '1862-09-21', sortDate: 18620921,
+        lat: 38.9217, lon: -77.0320,
+        title: 'The Secret', place: 'Washington, D.C.',
+        excerpt: 'Lincoln issued the Emancipation Proclamation. Meanwhile, Mary P. Evans kept a family secret about slaveholding ancestors — knowledge she never shared with her future husband, Tom Beer.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/09/screen-shot-2012-09-19-at-9-23-38-pm.png',
+        url: 'https://beerfamily.wordpress.com/2012/09/21/the-secret/', type: 'event' },
+
+      // === CHANCELLORSVILLE CAMPAIGN ===
+      { id: 16, phase: 'chancellors', date: '1863-04-27', sortDate: 18630427,
+        lat: 38.4243, lon: -77.3932,
+        title: 'On the March', place: 'Aquia Creek, Virginia',
+        excerpt: 'The 28th marched out of winter camp. Tom\'s shoulder had healed. The regiment wore the White Star badge of the 2d Division. Hooker\'s 133,000 men were finally on the march. "I have the finest army the sun ever shone on."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/04/josephhooker-sm.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/04/27/150-years-ago-on-the-march/', type: 'march' },
+
+      { id: 17, phase: 'chancellors', date: '1863-04-28', sortDate: 18630428,
+        lat: 38.3752, lon: -77.5536,
+        title: '"A great many men gave out"', place: 'Mount Holly Church, Virginia',
+        excerpt: 'Another grueling 15-mile march southward. "A great many men gave out, and some died on the road." Word spread to maintain strict silence.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/04/mt-holly-church.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/04/28/150-years-ago-a-great-many-men-gave-out/', type: 'march' },
+
+      { id: 18, phase: 'chancellors', date: '1863-04-29', sortDate: 18630429,
+        lat: 38.4763, lon: -77.8216,
+        title: 'River Crossings', place: "Kelly's Ford, Rappahannock River, VA",
+        excerpt: 'Breakfast of campfire coffee, fried bacon and hardtack. They crossed a pontoon bridge over the Rappahannock with pine boughs muffling footsteps, then marched 16 miles to the Rapidan and crossed by moonlight.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/04/20955v.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/04/29/150-years-ago-river-crossings/', type: 'march' },
+
+      { id: 19, phase: 'chancellors', date: '1863-04-30', sortDate: 18630430,
+        lat: 38.3135, lon: -77.6370,
+        title: 'They Little Dreamed of the Fearful Drama', place: 'Chancellorsville, Virginia',
+        excerpt: 'They reached the clearing at Chancellorsville around 2 o\'clock. The ladies of the Chancellor house "little dreamed of the fearful drama which was so soon to be opened in their immediate presence." Through the night they built earthworks with "saber bayonets, tin plates, tin cups."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/04/screen-shot-2013-04-29-at-8-32-49-pm.png',
+        url: 'https://beerfamily.wordpress.com/2013/04/30/150-years-ago-they-little-dreamed-of-the-fearful-drama/', type: 'camp' },
+
+      { id: 20, phase: 'chancellors', date: '1863-05-01', sortDate: 18630501,
+        lat: 38.3122, lon: -77.6358,
+        title: '"We have victory in sight!"', place: 'Chancellorsville, Virginia',
+        excerpt: 'Slocum was furious when ordered to withdraw. "Nobody but a crazy man would give such an order when we have victory in sight!" After months of planning, the Federal troops returned to their trenches and left the initiative to Lee.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/05/henry_warner_slocum.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/05/01/150-years-ago-we-have-victory-in-sight/', type: 'battle',
+        casualties: { strength: 315, total: 101, killed: null, wounded: null, missing: null, note: 'Chancellorsville aggregate' } },
+
+      { id: 21, phase: 'chancellors', date: '1863-05-02', sortDate: 18630502,
+        lat: 38.3110, lon: -77.6345,
+        title: 'By His Voice and Example', place: 'Chancellorsville, Virginia',
+        excerpt: 'Jackson\'s 28,000 troops completed their audacious flank attack. As panicked soldiers poured through their ranks, Sgt Hayward "with fixed bayonet checked the progress of a number." 28 men killed, wounded or missing.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/05/bridgewater-civil-war-institute_carusel.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/05/02/150-years-ago-by-his-voice-and-example/', type: 'battle',
+        casualties: { strength: 315, total: 101, killed: null, wounded: null, missing: null, note: 'Chancellorsville aggregate' } },
+
+      { id: 22, phase: 'chancellors', date: '1863-05-03', sortDate: 18630503,
+        lat: 38.3118, lon: -77.6375,
+        title: 'Our Gallant Major', place: 'Chancellorsville, Virginia',
+        excerpt: '"Come on, boys, we will take them!" They retook the fortifications by hand-to-hand combat. Major Chapman was struck in the chest. Of 315 men, 101 were killed, wounded or missing. "We have lost our gallant Major."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/05/800px-chancellorsville_may3a.png',
+        url: 'https://beerfamily.wordpress.com/2013/05/03/150-years-ago-our-gallant-major/', type: 'battle',
+        casualties: { strength: 315, total: 101, killed: null, wounded: null, missing: null, note: 'Of 315 men, 101 killed, wounded or missing' } },
+
+      // === GETTYSBURG CAMPAIGN ===
+      { id: 23, phase: 'gettysburg', date: '1863-06-19', sortDate: 18630619,
+        lat: 39.1157, lon: -77.5636,
+        title: 'Executions at Leesburg', place: 'Leesburg, Virginia',
+        excerpt: 'The corps formed a hollow square. Three blindfolded deserters were seated on coffins. "Fire!" The entire command marched past the corpses. "A terribly sad sight for a fellow soldier to witness."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/06/beer-thomas-in-uniform1.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/06/19/150-years-ago-19-june-1863/', type: 'event' },
+
+      { id: 24, phase: 'gettysburg', date: '1863-06-30', sortDate: 18630630,
+        lat: 39.7417, lon: -77.0889,
+        title: '"We\'re on our own dunghill now!"', place: 'Littlestown, Pennsylvania',
+        excerpt: 'Cheers erupted crossing the state line. "We are on our own dung hill now! They had better send a lock of their hair to Mama!" Led by Lt Col Flynn, 329 Pennsylvanians with new Springfield muskets.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/flynn.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/06/30/150-years-ago-were-on-our-own-dunghill-now/', type: 'march' },
+
+      { id: 25, phase: 'gettysburg', date: '1863-07-01', sortDate: 18630701,
+        lat: 39.8100, lon: -77.2360,
+        title: 'A Night of Fears and Doubts', place: 'Two Taverns / Cemetery Ridge, Gettysburg',
+        excerpt: 'They halted at Two Taverns, hearing distant battle. By 5 PM they were behind Cemetery Ridge. "It was a night of fears and doubts… the silence of every one was confirmatory of a reverse."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/04/hd_candyc1.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/07/01/150-years-ago-1-july-1863-a-night-of-fears-and-doubts/', type: 'march' },
+
+      { id: 26, phase: 'gettysburg', date: '1863-07-02', sortDate: 18630702,
+        lat: 39.8195, lon: -77.2170,
+        title: "Morning — Culp's Hill", place: "Culp's Hill, Gettysburg",
+        excerpt: 'They ascended Culp\'s Hill and fanned out near Rock Creek in a heavy skirmish line, exchanging shots across the stream throughout the morning and afternoon.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/water_rockcreek2ejpg.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/07/02/150-years-ago-morning-2-july-1863/', type: 'battle',
+        casualties: { strength: 329, total: 27, killed: 6, wounded: 19, missing: 2, note: '329 Pennsylvanians; 6 killed, 19 wounded' } },
+
+      { id: 27, phase: 'gettysburg', date: '1863-07-02', sortDate: 18630702.5,
+        lat: 39.8190, lon: -77.2200,
+        title: "Evening — Confusion at Culp's Hill", place: "Culp's Hill / Baltimore Pike, Gettysburg",
+        excerpt: 'At twilight the Confederates probed Culp\'s Hill. In the confusion, Geary marched his division completely off the battlefield. The rebels now occupied their breastworks. "The Johnnies were thicker than bees."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/screen-shot-2013-06-27-at-8-27-14-pm.png',
+        url: 'https://beerfamily.wordpress.com/2013/07/02/150-years-ago-evening-2-july-1863/', type: 'battle',
+        casualties: { strength: 329, total: 27, killed: 6, wounded: 19, missing: 2, note: '329 Pennsylvanians; 6 killed, 19 wounded' } },
+
+      { id: 28, phase: 'gettysburg', date: '1863-07-03', sortDate: 18630703,
+        lat: 39.8197, lon: -77.2165,
+        title: "04:30 — The Battle Commenced in Earnest", place: "Culp's Hill, Gettysburg",
+        excerpt: '"The battle commenced in earnest." The Union line sustained continuous fire — 277,000 rounds expended, 70 per man. At eight o\'clock, Flynn\'s men rushed to the front "in their usual gallant style."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/722px-union_breastworks_culps_hill_gettysburg.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/07/03/150-years-ago-0430-the-battle-commenced-in-earnest/', type: 'battle',
+        casualties: { strength: 329, total: 27, killed: 6, wounded: 19, missing: 2, note: '329 Pennsylvanians; 6 killed, 19 wounded' } },
+
+      { id: 29, phase: 'gettysburg', date: '1863-07-03', sortDate: 18630703.5,
+        lat: 39.8200, lon: -77.2160,
+        title: '08:00 — Humanity is Forgotten', place: "Culp's Hill, Gettysburg",
+        excerpt: '"My God, there they come again." "Remember Chancellorsville!" Faces black from smoke, lips cracked from saltpeter. "A thousand fingers press a thousand triggers, and all humanity is forgotten in the haste to load and kill."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/life_andlimb_1-scaled1000.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/07/03/150-years-ago-0800-humanity-is-forgotten/', type: 'battle',
+        casualties: { strength: 329, total: 27, killed: 6, wounded: 19, missing: 2, note: '329 Pennsylvanians; 6 killed, 19 wounded' } },
+
+      { id: 30, phase: 'gettysburg', date: '1863-07-04', sortDate: 18630704,
+        lat: 39.8205, lon: -77.2180,
+        title: '"The dead alone remained"', place: "Culp's Hill, Gettysburg",
+        excerpt: 'A soldier crowed like a rooster. "The living foes were gone, the dead alone remained." Trees denuded, blood everywhere. 2,400 Confederates fell on Culp\'s Hill; the 28th lost 6 killed, 19 wounded.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/113225.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/07/04/150-years-ago-july-4-the-dead-alone-remained/', type: 'battle',
+        casualties: { strength: 329, total: 27, killed: 6, wounded: 19, missing: 2, note: '329 Pennsylvanians; 6 killed, 19 wounded' } },
+
+      { id: 31, phase: 'gettysburg', date: '1863-07-04', sortDate: 18630704.5,
+        lat: 39.8195, lon: -77.2190,
+        title: '"A Great Victory for Us"', place: 'Gettysburg, Pennsylvania',
+        excerpt: 'The last battle with the Army of the Potomac. Spirits renewed. "I hope soon to see our arms triumphant all over the land." Sgt. Moore\'s diary: "Sat 4th…A great victory for us."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/pa.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/07/04/150-years-ago-july-4-a-great-victory-for-us/', type: 'event' },
+
+      // === WESTERN THEATER ===
+      { id: 32, phase: 'west', date: '1863-09-24', sortDate: 18630924,
+        lat: 38.5712, lon: -77.7735,
+        title: 'Transferred West', place: 'Bealeton Station, Virginia',
+        excerpt: 'The 28th loaded rail cars and rumbled west for ten days through West Virginia, Ohio, Indiana and Kentucky. At Dayton, soldiers beat a man shouting anti-war slogans. Near Bellton, a train collision hit Tom\'s F Company.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/bridge-over-the-duck-river.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/09/24/150-years-ago-24-september-1863/', type: 'march' },
+
+      { id: 33, phase: 'west', date: '1863-10-30', sortDate: 18631030,
+        lat: 35.0562, lon: -85.3450,
+        title: 'Corduroy Roads to Chattanooga', place: "Kelly's Ford to Brown's Ferry, TN",
+        excerpt: 'The 28th was put to work corduroying roads between Kelly\'s Ford and Brown\'s Ferry to deliver much needed supplies to the besieged forces at Chattanooga. The rail journey west had been eventful — at Dayton, soldiers beat a Copperhead shouting anti-war slogans; near Bellton, a train collision drove an engine through the car carrying Tom\'s F Company. Amazingly, all thirty-five men walked away.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/06/leslies-battles-commanders_weldon_railroad_corduroy_road_.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/10/30/150-years-ago-30-october-1863/', type: 'march' },
+
+      { id: 34, phase: 'west', date: '1863-11-24', sortDate: 18631124,
+        lat: 35.0086, lon: -85.3501,
+        title: 'Battle Above the Clouds', place: 'Lookout Mountain, Chattanooga, TN',
+        excerpt: 'The 28th crossed Lookout Creek and assaulted the mountain in fog — the "Battle Above the Clouds." Confederate resistance was feeble. Tom would later tell his grandchildren he stood at the summit and could see three states.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/11/point-park2.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/11/24/150-years-ago-battle-above-the-clouds/', type: 'battle' },
+
+      { id: 35, phase: 'west', date: '1863-11-27', sortDate: 18631127,
+        lat: 34.9154, lon: -85.1097,
+        title: 'Ringgold Gap', place: 'Ringgold, Georgia',
+        excerpt: 'They charged up Taylor\'s Ridge under heavy fire. "I turned away, dreading to see him roll down the mountain." Thomas Beer was again wounded — a musket ball through his thigh, six inches above the knee.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2013/11/battle_of_ringgold_gap_main.jpg',
+        url: 'https://beerfamily.wordpress.com/2013/11/27/150-years-ago-ringgold-gap/', type: 'wounded',
+        casualties: { strength: null, total: 35, killed: 13, wounded: 22, missing: null, note: 'Thomas Beer wounded (thigh)' } },
+
+      // === ATLANTA CAMPAIGN ===
+      { id: 36, phase: 'atlanta', date: '1864-05-03', sortDate: 18640503,
+        lat: 34.9476, lon: -85.7143,
+        title: 'Atlanta Campaign Begins', place: 'Bridgeport, Alabama',
+        excerpt: 'After five months recovering, Beer rejoined the 28th at Bridgeport. They departed as part of 98,000 troops under Sherman. His objective: capture Atlanta and take the war into the heart of the Confederacy.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2014/05/hd_grantplanofcmpgn1864wpz-preview.jpg',
+        url: 'https://beerfamily.wordpress.com/2014/05/03/150-years-ago-atlanta-campaign/', type: 'march' },
+
+      { id: 37, phase: 'atlanta', date: '1864-05-08', sortDate: 18640508,
+        lat: 34.7675, lon: -84.9878,
+        title: 'Dug Gap', place: 'Rocky Face Ridge / Dug Gap, Georgia',
+        excerpt: '350 men of the 28th splashed across Mill Creek and ascended 800-foot ridges. Confederates rolled boulders down upon them. 48 casualties. The stone wall is still intact today.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2014/05/img.jpg',
+        url: 'https://beerfamily.wordpress.com/2014/05/08/150-years-ago-dug-gap/', type: 'battle',
+        casualties: { strength: 350, total: 48, killed: 7, wounded: null, missing: null, note: '350 men, 48 casualties' } },
+
+      { id: 38, phase: 'atlanta', date: '1864-05-16', sortDate: 18640516,
+        lat: 34.5789, lon: -84.9389,
+        title: 'Resaca', place: 'Resaca, Georgia',
+        excerpt: 'After marching 10 miles, they arrived at Resaca, a railroad supply terminal. The 28th was charged with provost duties. When dawn broke on the 15th, the Rebels had withdrawn yet again.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2014/05/942233_473454436059663_2029920173_n.jpg',
+        url: 'https://beerfamily.wordpress.com/2014/05/16/150-years-ago-resaca/', type: 'march' },
+
+      { id: 39, phase: 'atlanta', date: '1864-05-19', sortDate: 18640519,
+        lat: 34.2351, lon: -84.8373,
+        title: 'Slavery Up Close', place: 'Cassville, Georgia',
+        excerpt: 'For two hot, sultry days they rested, recovering from a forty-mile march and watching ex-slaves pour into the Union lines.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2014/05/contraband-slaves.jpg',
+        url: 'https://beerfamily.wordpress.com/2014/05/19/150-years-ago-slavery-up-close/', type: 'camp' },
+
+      { id: 40, phase: 'atlanta', date: '1864-05-26', sortDate: 18640526,
+        lat: 33.9600, lon: -84.7728,
+        title: 'New Hope Church — "The Hell-Hole"', place: 'New Hope Church, Georgia',
+        excerpt: 'For three days the 28th lay in "the Hell-hole," fighting on their bellies among dead bodies. "The most trying time of the war." 1,665 Union soldiers fell at this unremarkable crossroads.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2014/05/newhopechurchmarker.jpg',
+        url: 'https://beerfamily.wordpress.com/2014/05/26/150-years-ago-new-hope-church/', type: 'battle',
+        casualties: { strength: null, total: null, killed: null, wounded: null, missing: null, note: '1,665 Union soldiers fell (division-level)' } },
+
+      { id: 41, phase: 'atlanta', date: '1864-06-15', sortDate: 18640615,
+        lat: 34.0481, lon: -84.6136,
+        title: 'Pine Knob — Final Wound', place: 'Pine Knob, Georgia',
+        excerpt: 'At 2:15 PM they advanced up a timbered hillside into entrenched fire. 47 men killed and wounded. Thomas Beer was among the casualties. Sent to hospital in Chattanooga. For Private Beer, the war was over.',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2012/06/beer-thomas-in-uniform1.jpg',
+        url: 'https://beerfamily.wordpress.com/2014/06/15/150-years-ago-pine-knob-ga/', type: 'wounded',
+        casualties: { strength: null, total: 47, killed: null, wounded: null, missing: null, note: '47 killed and wounded; Thomas Beer final wound' } },
+
+      // === POST-WAR ===
+      { id: 42, phase: 'postwar', date: '1864-10-01', sortDate: 18641001,
+        lat: 40.0480, lon: -91.0740,
+        title: 'The Carpenter', place: 'Camp Point / Lorain, Illinois',
+        excerpt: 'Tom arrived in Camp Point, Illinois, age 22. He learned carpentry, built a ten-room house designed for two families, barns, a one-room schoolhouse with leather chalkboards and tin ceilings. Mary often chaffed at Tom for neglecting his farm — someone would come along asking for carpentry, and he\'d happily disappear with his tools. A small carpenter\'s marking gauge survives — "a wonderful reminder of a life spent building things…barns, homes, family."',
+        photoUrl: 'https://beerfamily.wordpress.com/wp-content/uploads/2018/10/beer-thomas-family-and-house-early.jpg',
+        url: 'https://beerfamily.wordpress.com/2018/10/27/the-carpenter/', type: 'home' }
+    ];
+
+    // =========================================================================
+    // MAP INITIALIZATION
+    // =========================================================================
+
+    const map = L.map('map', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([38.2, -80.5], 6);
+
+    // Dark basemap — CartoDB Dark Matter (free, no API key required)
+    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    // Light basemap — CartoDB Voyager (free, no API key required)
+    const lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    });
+
+    // Fallback — OpenStreetMap (always free)
+    const osmTiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    });
+
+    // =========================================================================
+    // BATTLEFIELD BOUNDARY OVERLAYS (NPS ABPP approximate boundaries)
+    // =========================================================================
+
+    const battlefieldBoundaries = {
+      'Antietam': {
+        color: '#C0392B', events: '5–13',
+        coords: [
+          [39.4890, -77.7570], [39.4890, -77.7320], [39.4650, -77.7320],
+          [39.4650, -77.7570], [39.4890, -77.7570]
+        ]
+      },
+      'Chancellorsville': {
+        color: '#D4890E', events: '19–22',
+        coords: [
+          [38.3210, -77.6510], [38.3210, -77.6200], [38.3030, -77.6200],
+          [38.3030, -77.6510], [38.3210, -77.6510]
+        ]
+      },
+      'Gettysburg': {
+        color: '#2E6DA4', events: '25–31',
+        coords: [
+          [39.8350, -77.2450], [39.8350, -77.2050], [39.7950, -77.2050],
+          [39.7950, -77.2450], [39.8350, -77.2450]
+        ]
+      },
+      'Chattanooga': {
+        color: '#8E44AD', events: '34–35',
+        coords: [
+          [35.0250, -85.3700], [35.0250, -85.3200], [34.9950, -85.3200],
+          [34.9950, -85.3700], [35.0250, -85.3700]
+        ]
+      }
+    };
+
+    const boundaryOverlays = {};
+    Object.entries(battlefieldBoundaries).forEach(([name, bf]) => {
+      const polygon = L.polygon(bf.coords, {
+        color: bf.color, weight: 2, fillColor: bf.color,
+        fillOpacity: 0.08, dashArray: '8, 4', opacity: 0.6,
+        interactive: true
+      });
+      polygon.bindPopup(`<div class="popup-title">${name} Battlefield</div>
+        <div class="popup-date">NPS ABPP approximate boundary</div>
+        <div class="popup-detail">Map events ${bf.events} occurred within this area.</div>`);
+      boundaryOverlays[`&#9645; ${name} Boundary`] = polygon;
+    });
+
+    L.control.layers(
+      { 'Dark': darkTiles, 'Light': lightTiles, 'OpenStreetMap': osmTiles },
+      boundaryOverlays,
+      { position: 'topright', collapsed: true }
+    ).addTo(map);
+
+    L.control.scale({ imperial: true, metric: false }).addTo(map);
+
+    // =========================================================================
+    // LAYER GROUPS — one per campaign phase
+    // =========================================================================
+
+    const phaseLayers = {};
+    const routeLayers = {};
+    campaignPhases.forEach(p => {
+      phaseLayers[p.id] = L.layerGroup().addTo(map);
+      routeLayers[p.id] = L.layerGroup().addTo(map);
+    });
+
+    // =========================================================================
+    // TYPE ICONS — SVG markers by event type
+    // =========================================================================
+
+    const typeIcons = {
+      battle:   { shape: 'star',    size: 12 },
+      wounded:  { shape: 'cross',   size: 12 },
+      camp:     { shape: 'circle',  size: 8  },
+      march:    { shape: 'circle',  size: 7  },
+      hospital: { shape: 'cross',   size: 10 },
+      event:    { shape: 'diamond', size: 9  },
+      home:     { shape: 'square',  size: 10 }
+    };
+
+    function makeSVG(type, color) {
+      const info = typeIcons[type] || typeIcons.event;
+      const s = info.size;
+      const svgSize = s * 2 + 4;
+      const c = s + 2;
+      let shape;
+      switch (info.shape) {
+        case 'star':
+          const pts = [];
+          for (let i = 0; i < 5; i++) {
+            const aOuter = (i * 72 - 90) * Math.PI / 180;
+            const aInner = ((i * 72) + 36 - 90) * Math.PI / 180;
+            pts.push(`${c + s * Math.cos(aOuter)},${c + s * Math.sin(aOuter)}`);
+            pts.push(`${c + s * 0.45 * Math.cos(aInner)},${c + s * 0.45 * Math.sin(aInner)}`);
+          }
+          shape = `<polygon points="${pts.join(' ')}" fill="${color}" stroke="#E8DCC8" stroke-width="1.2" opacity="0.9"/>`;
+          break;
+        case 'cross':
+          const t = s * 0.35;
+          shape = `<path d="M${c-t},${c-s} h${t*2} v${s-t} h${s-t} v${t*2} h${-(s-t)} v${s-t} h${-t*2} v${-(s-t)} h${-(s-t)} v${-t*2} h${s-t}z" fill="${color}" stroke="#E8DCC8" stroke-width="1" opacity="0.9"/>`;
+          break;
+        case 'diamond':
+          shape = `<polygon points="${c},${c-s} ${c+s},${c} ${c},${c+s} ${c-s},${c}" fill="${color}" stroke="#E8DCC8" stroke-width="1.2" opacity="0.9"/>`;
+          break;
+        case 'square':
+          shape = `<rect x="${c-s*0.7}" y="${c-s*0.7}" width="${s*1.4}" height="${s*1.4}" fill="${color}" stroke="#E8DCC8" stroke-width="1.2" opacity="0.9" rx="2"/>`;
+          break;
+        default:
+          shape = `<circle cx="${c}" cy="${c}" r="${s}" fill="${color}" stroke="#E8DCC8" stroke-width="1.2" opacity="0.85"/>`;
+      }
+      return `<svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}">${shape}</svg>`;
+    }
+
+    // =========================================================================
+    // RENDER MARKERS AND ROUTES
+    // =========================================================================
+
+    const allMarkers = [];
+    let currentSliderIdx = events.length;
+
+    function getPhaseColor(phaseId) {
+      return campaignPhases.find(p => p.id === phaseId)?.color || '#999';
+    }
+
+    // Create markers
+    events.forEach((ev, idx) => {
+      const color = getPhaseColor(ev.phase);
+      const svg = makeSVG(ev.type, color);
+      const iconSize = (typeIcons[ev.type]?.size || 8) * 2 + 4;
+
+      const icon = L.divIcon({
+        html: svg,
+        className: '',
+        iconSize: [iconSize, iconSize],
+        iconAnchor: [iconSize / 2, iconSize / 2]
+      });
+
+      const marker = L.marker([ev.lat, ev.lon], { icon });
+
+      const phaseLabel = campaignPhases.find(p => p.id === ev.phase)?.label || '';
+      let popupHtml = '';
+      if (ev.photoUrl) {
+        popupHtml += `<img class="popup-photo" src="${ev.photoUrl}" alt="${ev.title}" loading="lazy" onerror="this.style.display='none'">`;
+      }
+      popupHtml += `
+        <div class="popup-title"><span class="popup-phase-badge" style="background:${color}">${phaseLabel.split('(')[0].trim()}</span>${ev.title}</div>
+        <div class="popup-date">${ev.date} — ${ev.place}</div>
+        <div class="popup-detail">${ev.excerpt}</div>`;
+      if (ev.casualties && (ev.casualties.total || ev.casualties.note)) {
+        const cas = ev.casualties;
+        let casText = '';
+        if (cas.strength && cas.total) {
+          const pct = Math.round((cas.total / cas.strength) * 100);
+          casText = `Casualties: ${cas.total} / ${cas.strength} (${pct}%)`;
+        } else if (cas.total) {
+          casText = `Casualties: ${cas.total}`;
+        }
+        if (cas.note) casText += casText ? ` — ${cas.note}` : cas.note;
+        popupHtml += `<div class="popup-casualties">${casText}</div>`;
+      }
+      popupHtml += `<a class="popup-readmore" href="${ev.url}" target="_blank">Read full blog post &rarr;</a>`;
+      marker.bindPopup(popupHtml, { maxWidth: 340 });
+
+      marker.on('click', () => showNarrative(ev));
+      marker.eventData = ev;
+      marker.eventIndex = idx;
+      allMarkers.push(marker);
+      marker.addTo(phaseLayers[ev.phase]);
+    });
+
+    // Draw route lines between sequential events
+    for (let i = 1; i < events.length; i++) {
+      const prev = events[i - 1];
+      const curr = events[i];
+      if (prev.lat === curr.lat && prev.lon === curr.lon) continue;
+
+      const color = getPhaseColor(curr.phase);
+      const line = L.polyline(
+        [[prev.lat, prev.lon], [curr.lat, curr.lon]],
+        { color: color, weight: 2, dashArray: '6, 4', opacity: 0.5 }
+      );
+      line.routeIndex = i;
+      line.addTo(routeLayers[curr.phase]);
+    }
+
+    // Fit map to all markers
+    const allLatLngs = events.map(e => [e.lat, e.lon]);
+    map.fitBounds(L.latLngBounds(allLatLngs).pad(0.08));
+
+    // =========================================================================
+    // 4B: RESET VIEW BUTTON
+    // =========================================================================
+
+    const resetBtn = L.control({ position: 'topleft' });
+    resetBtn.onAdd = function() {
+      const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control');
+      btn.innerHTML = '&#x27F3;';
+      btn.title = 'Reset view';
+      btn.style.cssText = 'width:34px;height:34px;font-size:18px;cursor:pointer;background:#fff;border:none;line-height:34px;text-align:center;';
+      btn.onclick = (e) => { e.stopPropagation(); map.fitBounds(L.latLngBounds(allLatLngs).pad(0.08)); };
+      L.DomEvent.disableClickPropagation(btn);
+      return btn;
+    };
+    resetBtn.addTo(map);
+
+    // =========================================================================
+    // 4C: GEOJSON EXPORT BUTTON
+    // =========================================================================
+
+    const exportBtn = L.control({ position: 'topleft' });
+    exportBtn.onAdd = function() {
+      const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control');
+      btn.innerHTML = '&#x2913;';
+      btn.title = 'Export GeoJSON';
+      btn.style.cssText = 'width:34px;height:34px;font-size:16px;cursor:pointer;background:#fff;border:none;line-height:34px;text-align:center;';
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const features = events.map(ev => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [ev.lon, ev.lat] },
+          properties: {
+            id: ev.id, title: ev.title, date: ev.date, place: ev.place,
+            phase: ev.phase, type: ev.type, excerpt: ev.excerpt, url: ev.url,
+            casualties: ev.casualties || null
+          }
+        }));
+        const geojson = { type: 'FeatureCollection', features };
+        const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'thomas_beer_civil_war_events.geojson';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+      L.DomEvent.disableClickPropagation(btn);
+      return btn;
+    };
+    exportBtn.addTo(map);
+
+    // =========================================================================
+    // LEGEND — clickable toggles
+    // =========================================================================
+
+    const legendEl = document.getElementById('legend');
+    const phaseVisibility = {};
+
+    campaignPhases.forEach(p => {
+      phaseVisibility[p.id] = true;
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<div class="swatch" style="background:${p.color}"></div><div class="label">${p.label}</div>`;
+      item.addEventListener('click', () => {
+        phaseVisibility[p.id] = !phaseVisibility[p.id];
+        item.classList.toggle('muted', !phaseVisibility[p.id]);
+        if (phaseVisibility[p.id]) {
+          map.addLayer(phaseLayers[p.id]);
+          map.addLayer(routeLayers[p.id]);
+        } else {
+          map.removeLayer(phaseLayers[p.id]);
+          map.removeLayer(routeLayers[p.id]);
+        }
+      });
+      legendEl.appendChild(item);
+    });
+
+    // Add shape key section
+    const shapeHeader = document.createElement('h3');
+    shapeHeader.textContent = 'Marker Shapes';
+    shapeHeader.style.marginTop = '12px';
+    legendEl.appendChild(shapeHeader);
+
+    const shapes = [
+      { type: 'battle', label: 'Battle' },
+      { type: 'wounded', label: 'Wounded / Hospital' },
+      { type: 'camp', label: 'Camp / March' },
+      { type: 'event', label: 'Notable Event' },
+      { type: 'home', label: 'Home / Post-War' }
+    ];
+
+    shapes.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.style.cursor = 'default';
+      const svg = makeSVG(s.type, '#999');
+      item.innerHTML = `<div style="width:14px;height:14px;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0">${svg}</div><div class="label">${s.label}</div>`;
+      legendEl.appendChild(item);
+    });
+
+    // =========================================================================
+    // NARRATIVE PANEL
+    // =========================================================================
+
+    function showNarrative(ev) {
+      document.getElementById('narr-title').textContent = ev.title;
+      document.getElementById('narr-date').textContent = `${ev.date} — ${ev.place}`;
+      // Photo + excerpt
+      let excerptHtml = '';
+      if (ev.photoUrl) {
+        excerptHtml += `<img class="narrative-photo" src="${ev.photoUrl}" alt="${ev.title}" loading="lazy" onerror="this.style.display='none'">`;
+      }
+      excerptHtml += `<em>"${ev.excerpt}"</em>`;
+      document.getElementById('narr-excerpt').innerHTML = excerptHtml;
+      document.getElementById('narr-link').href = ev.url;
+      document.getElementById('narrative').style.display = 'block';
+    }
+
+    // =========================================================================
+    // TIMELINE SLIDER
+    // =========================================================================
+
+    const slider = document.getElementById('timeline-slider');
+    const dateDisplay = document.getElementById('date-display');
+    const statVisible = document.getElementById('stat-visible');
+
+    slider.max = events.length;
+    slider.value = events.length;
+    statVisible.textContent = events.length;
+
+    slider.addEventListener('input', function () {
+      const val = parseInt(this.value);
+      currentSliderIdx = val;
+      updateVisibility(val);
+    });
+
+    function updateVisibility(maxIdx) {
+      if (maxIdx >= events.length) {
+        dateDisplay.textContent = 'All Events';
+      } else if (maxIdx === 0) {
+        dateDisplay.textContent = 'Before the War';
+      } else {
+        dateDisplay.textContent = events[maxIdx - 1].date;
+      }
+
+      let visCount = 0;
+
+      // Show/hide markers
+      allMarkers.forEach((marker, idx) => {
+        const layer = phaseLayers[marker.eventData.phase];
+        if (idx < maxIdx && phaseVisibility[marker.eventData.phase]) {
+          if (!layer.hasLayer(marker)) layer.addLayer(marker);
+          visCount++;
+        } else {
+          if (layer.hasLayer(marker)) layer.removeLayer(marker);
+        }
+      });
+
+      // Show/hide route lines and arrow decorations
+      campaignPhases.forEach(p => {
+        routeLayers[p.id].eachLayer(layer => {
+          if (layer.routeIndex !== undefined) {
+            const visible = layer.routeIndex < maxIdx && phaseVisibility[p.id];
+            if (layer.setStyle) {
+              // Polyline
+              layer.setStyle({ opacity: visible ? 0.5 : 0 });
+            } else if (layer.setOpacity) {
+              // Arrow marker
+              layer.setOpacity(visible ? 1 : 0);
+            } else if (layer.getElement) {
+              // DivIcon marker fallback
+              const el = layer.getElement();
+              if (el) el.style.display = visible ? '' : 'none';
+            }
+          }
+        });
+      });
+
+      statVisible.textContent = visCount;
+
+      // Tally wounds and major battles based on visible events
+      let wounds = 0;
+      let battlesSeen = new Set();
+      for (let i = 0; i < maxIdx && i < events.length; i++) {
+        const ev = events[i];
+        if (ev.type === 'wounded') wounds++;
+        // Count distinct major battle engagements (by campaign phase + location cluster)
+        if (ev.type === 'battle') {
+          // Group battles: Antietam, Chancellorsville, Gettysburg, Lookout Mtn, Ringgold, Dug Gap, New Hope, Pine Knob
+          if (ev.phase === 'antietam' && ev.date === '1862-09-17') battlesSeen.add('Antietam');
+          else if (ev.phase === 'chancellors' && ev.date >= '1863-05-01') battlesSeen.add('Chancellorsville');
+          else if (ev.phase === 'gettysburg' && ev.date >= '1863-07-02') battlesSeen.add('Gettysburg');
+          else if (ev.title.includes('Clouds')) battlesSeen.add('Lookout Mountain');
+          else if (ev.title.includes('Dug Gap')) battlesSeen.add('Dug Gap');
+          else if (ev.title.includes('New Hope')) battlesSeen.add('New Hope Church');
+          else if (ev.title.includes('Pine Knob')) battlesSeen.add('Pine Knob');
+        }
+      }
+      document.getElementById('stat-wounds').textContent = wounds;
+      document.getElementById('stat-battles').textContent = battlesSeen.size;
+    }
+
+    // =========================================================================
+    // ARROW DECORATIONS — directional arrows on route lines
+    // =========================================================================
+
+    function addArrowDecorations() {
+      for (let i = 1; i < events.length; i++) {
+        const prev = events[i - 1];
+        const curr = events[i];
+        if (prev.lat === curr.lat && prev.lon === curr.lon) continue;
+
+        const color = getPhaseColor(curr.phase);
+        const midLat = (prev.lat + curr.lat) / 2;
+        const midLon = (prev.lon + curr.lon) / 2;
+
+        // Calculate bearing for arrow rotation
+        const dLon = (curr.lon - prev.lon) * Math.PI / 180;
+        const lat1 = prev.lat * Math.PI / 180;
+        const lat2 = curr.lat * Math.PI / 180;
+        const y = Math.sin(dLon) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+        const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+
+        const arrowSvg = `<svg width="16" height="16" viewBox="0 0 16 16" style="transform:rotate(${bearing}deg)">
+          <polygon points="8,1 14,12 8,9 2,12" fill="${color}" opacity="0.7" stroke="#E8DCC8" stroke-width="0.5"/>
+        </svg>`;
+
+        const arrowIcon = L.divIcon({
+          html: arrowSvg, className: '', iconSize: [16, 16], iconAnchor: [8, 8]
+        });
+        const arrowMarker = L.marker([midLat, midLon], { icon: arrowIcon, interactive: false });
+        arrowMarker.routeIndex = i;
+        arrowMarker.addTo(routeLayers[curr.phase]);
+      }
+    }
+    addArrowDecorations();
+
+    // =========================================================================
+    // PLAY / ANIMATE — distance-aware transitions with traveling marker
+    // =========================================================================
+
+    let playing = false;
+    let playTimeout = null;
+    let travelMarker = null;
+    let travelLine = null;
+    let animFrame = null;
+    const playBtn = document.getElementById('play-btn');
+
+    // Haversine distance in miles
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 3959;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // Create the traveling soldier marker
+    const soldierSvg = `<svg width="20" height="20" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="8" fill="#C9A44A" stroke="#E8DCC8" stroke-width="2" opacity="0.95"/>
+      <text x="10" y="14" text-anchor="middle" font-size="11" fill="#1a1a2e" font-weight="bold">&#9733;</text>
+    </svg>`;
+    const soldierIcon = L.divIcon({
+      html: soldierSvg, className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+
+    function removeTravelEffects() {
+      if (travelMarker) { map.removeLayer(travelMarker); travelMarker = null; }
+      if (travelLine) { map.removeLayer(travelLine); travelLine = null; }
+      if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    }
+
+    // Animate soldier traveling between two points
+    function animateTravel(fromEv, toEv, duration, onComplete) {
+      removeTravelEffects();
+      const color = getPhaseColor(toEv.phase);
+
+      travelMarker = L.marker([fromEv.lat, fromEv.lon], { icon: soldierIcon, zIndexOffset: 1000 }).addTo(map);
+      travelLine = L.polyline([[fromEv.lat, fromEv.lon]], {
+        color: '#C9A44A', weight: 3, opacity: 0.8, dashArray: '2, 6'
+      }).addTo(map);
+
+      const startTime = performance.now();
+      function step(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        // Ease-in-out cubic
+        const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+
+        const lat = fromEv.lat + (toEv.lat - fromEv.lat) * ease;
+        const lon = fromEv.lon + (toEv.lon - fromEv.lon) * ease;
+        travelMarker.setLatLng([lat, lon]);
+        travelLine.addLatLng([lat, lon]);
+
+        if (t < 1) {
+          animFrame = requestAnimationFrame(step);
+        } else {
+          removeTravelEffects();
+          if (onComplete) onComplete();
+        }
+      }
+      animFrame = requestAnimationFrame(step);
+    }
+
+    // Calculate dwell + travel time based on distance and event type
+    function getTimingForEvent(idx) {
+      const ev = events[idx];
+      // Base dwell time at each event (read time for narrative)
+      let dwell = 3500;
+
+      // Battles and wounded events get more dwell time
+      if (ev.type === 'battle' || ev.type === 'wounded') dwell = 4500;
+      if (ev.casualties && ev.casualties.total > 50) dwell = 5500;
+
+      // Travel animation duration based on distance
+      let travelDuration = 800;
+      if (idx > 0) {
+        const prev = events[idx - 1];
+        const dist = haversine(prev.lat, prev.lon, ev.lat, ev.lon);
+        if (dist < 1) {
+          travelDuration = 600;    // Same location, quick transition
+        } else if (dist < 10) {
+          travelDuration = 1200;   // Nearby — battlefield movement
+        } else if (dist < 50) {
+          travelDuration = 2000;   // Regional march
+        } else if (dist < 200) {
+          travelDuration = 3000;   // Major march (e.g., Antietam to DC)
+        } else {
+          travelDuration = 4500;   // Theater transfer (e.g., VA to TN)
+        }
+      }
+
+      return { dwell, travelDuration };
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (playing) {
+        stopPlay();
+      } else {
+        startPlay();
+      }
+    });
+
+    let currentPlayIdx = 0;
+
+    function startPlay() {
+      playing = true;
+      playBtn.innerHTML = '&#9724; Pause';
+      currentPlayIdx = 0;
+      slider.value = 0;
+      updateVisibility(0);
+      playNextEvent();
+    }
+
+    function playNextEvent() {
+      if (!playing) return;
+      currentPlayIdx++;
+      if (currentPlayIdx > events.length) {
+        stopPlay();
+        return;
+      }
+
+      const ev = events[currentPlayIdx - 1];
+      const timing = getTimingForEvent(currentPlayIdx - 1);
+
+      // If there's a previous event, animate the travel first
+      if (currentPlayIdx > 1) {
+        const prevEv = events[currentPlayIdx - 2];
+        const dist = haversine(prevEv.lat, prevEv.lon, ev.lat, ev.lon);
+
+        // Zoom out for long-distance travel, then zoom in on arrival
+        if (dist > 100) {
+          map.flyTo([(prevEv.lat + ev.lat)/2, (prevEv.lon + ev.lon)/2], 6, { duration: 0.8 });
+        }
+
+        animateTravel(prevEv, ev, timing.travelDuration, () => {
+          if (!playing) return;
+          // Arrive at destination
+          slider.value = currentPlayIdx;
+          updateVisibility(currentPlayIdx);
+          map.flyTo([ev.lat, ev.lon], getZoomForEvent(currentPlayIdx - 1), { duration: 1.0 });
+          showNarrative(ev);
+
+          // Dwell at this event, then move on
+          playTimeout = setTimeout(() => playNextEvent(), timing.dwell);
+        });
+      } else {
+        // First event — no travel animation needed
+        slider.value = 1;
+        updateVisibility(1);
+        map.flyTo([ev.lat, ev.lon], getZoomForEvent(currentPlayIdx - 1), { duration: 1.5 });
+        showNarrative(ev);
+        playTimeout = setTimeout(() => playNextEvent(), timing.dwell + 1000);
+      }
+    }
+
+    function stopPlay() {
+      playing = false;
+      playBtn.innerHTML = '&#9654; Play';
+      removeTravelEffects();
+      if (playTimeout) { clearTimeout(playTimeout); playTimeout = null; }
+    }
+
+    function getZoomForEvent(idx) {
+      // Phase-level defaults
+      const phaseZooms = {
+        early: 9, antietam: 13, recovery1: 11, chancellors: 10,
+        gettysburg: 12, west: 7, atlanta: 9, postwar: 7
+      };
+
+      const ev = events[idx];
+      const baseZoom = phaseZooms[ev.phase] || 8;
+
+      // --- Pass 1: Same-date clusters (hour-by-hour battles) ---
+      let sameDayCluster = 1;
+      let sameDaySpread = 0;
+      for (let i = idx - 1; i >= 0; i--) {
+        if (events[i].date !== ev.date) break;
+        const d = haversine(ev.lat, ev.lon, events[i].lat, events[i].lon);
+        if (d > 3) break;
+        sameDaySpread = Math.max(sameDaySpread, d);
+        sameDayCluster++;
+      }
+      for (let i = idx + 1; i < events.length; i++) {
+        if (events[i].date !== ev.date) break;
+        const d = haversine(ev.lat, ev.lon, events[i].lat, events[i].lon);
+        if (d > 3) break;
+        sameDaySpread = Math.max(sameDaySpread, d);
+        sameDayCluster++;
+      }
+      if (sameDayCluster >= 3 && sameDaySpread < 3) {
+        if (sameDaySpread < 0.5) return 16;
+        if (sameDaySpread < 1.5) return 15;
+        return 14;
+      }
+      if (sameDayCluster >= 2 && sameDaySpread < 2) {
+        return Math.max(baseZoom, 14);
+      }
+
+      // --- Pass 2: Geographic clusters across consecutive days ---
+      // (e.g., Chancellorsville May 1-3: different dates, same ground)
+      let geoCluster = 1;
+      let geoSpread = 0;
+      for (let i = idx - 1; i >= 0; i--) {
+        const d = haversine(ev.lat, ev.lon, events[i].lat, events[i].lon);
+        if (d > 1.5 || events[i].phase !== ev.phase) break;
+        geoSpread = Math.max(geoSpread, d);
+        geoCluster++;
+      }
+      for (let i = idx + 1; i < events.length; i++) {
+        const d = haversine(ev.lat, ev.lon, events[i].lat, events[i].lon);
+        if (d > 1.5 || events[i].phase !== ev.phase) break;
+        geoSpread = Math.max(geoSpread, d);
+        geoCluster++;
+      }
+      if (geoCluster >= 3 && geoSpread < 1.5) {
+        if (geoSpread < 0.3) return 16;
+        if (geoSpread < 0.8) return 15;
+        return 14;
+      }
+
+      return baseZoom;
+    }
+
+    // Initialize stats
+    updateVisibility(events.length);
+  </script>
+</body>
+</html>
